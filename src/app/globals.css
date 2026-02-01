@@ -64,3 +64,41 @@ body {
   color: var(--foreground);
   font-family: "AdalineText", Arial, Helvetica, sans-serif;
 }
+
+/* EXTREME GPU acceleration for ultra-fast image loading during scroll */
+canvas {
+  display: block;
+  will-change: contents;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+/* Maximum performance rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: auto;
+}
+
+/* GPU-accelerated canvas rendering for instant display */
+canvas {
+  display: block;
+  will-change: contents;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  image-rendering: crisp-edges;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

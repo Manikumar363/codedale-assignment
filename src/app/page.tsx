@@ -3,11 +3,11 @@ import { motion } from "framer-motion";
 import { useRef, useEffect, useState, useCallback } from "react";
 import NextImage from "next/image";
 
-const PRELOAD_AHEAD = 90;
-const PARALLEL_LOADS = 40;
-const CACHE_SIZE = 120;
-const SCROLL_DAMPING = 0.15; // Increased for faster response (0.05-0.25 range)
-const PRELOAD_THROTTLE = 5; // Only preload every N frames
+const PRELOAD_AHEAD = 150; // Preload 150 images ahead (was 90)
+const PARALLEL_LOADS = 80; // Load 80 images in parallel (was 40)
+const CACHE_SIZE = 200; // Cache 200 images (was 120)
+const SCROLL_DAMPING = 0.85; // Much faster response (was 0.15)
+const PRELOAD_THROTTLE = 1; // Preload EVERY frame (was 5)
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,7 +37,8 @@ export default function Home() {
       if (preloadQueueRef.current.has(index)) return;
 
       preloadQueueRef.current.add(index);
-      const batchDelay = Math.floor(idx / PARALLEL_LOADS) * 2;
+      // Reduce delay for faster initial load
+      const batchDelay = Math.floor(idx / PARALLEL_LOADS) * 0; // No delay for instant preload
       
       setTimeout(() => {
         const img = new Image();
@@ -112,11 +113,12 @@ export default function Home() {
     const renderFrame = () => {
       frameCountRef.current++;
 
-      // Smooth interpolation using lerp (exponential damping)
+      // Fast response with aggressive frame transitions
       const delta = targetScrollRef.current - scrollRef.current;
       scrollRef.current += delta * SCROLL_DAMPING;
       
-      const section = Math.floor(scrollRef.current / viewportHeightRef.current);
+      // Faster frame transitions - divide by 0.7 instead of 1.0
+      const section = Math.floor((scrollRef.current * 22.4) / viewportHeightRef.current);
       const clampedSection = Math.max(0, Math.min(imageCount - 1, section));
       
       // Only redraw canvas if frame changed
@@ -136,15 +138,15 @@ export default function Home() {
         }
       }
 
-      // Throttle preloading to every N frames (avoid performance bottleneck)
+      // Aggressive preloading every frame for faster image availability
       if (frameCountRef.current % PRELOAD_THROTTLE === 0) {
-        const currentSection = Math.floor(scrollRef.current / viewportHeightRef.current);
+        const currentSection = Math.floor((scrollRef.current * 1.4) / viewportHeightRef.current);
         const imagesToPreload: number[] = [];
         
         for (let i = 0; i < PRELOAD_AHEAD; i++) {
           imagesToPreload.push(Math.min(imageCount - 1, currentSection + i));
         }
-        for (let i = 1; i <= 20; i++) {
+        for (let i = 1; i <= 30; i++) {
           imagesToPreload.push(Math.max(0, currentSection - i));
         }
         
@@ -153,7 +155,7 @@ export default function Home() {
 
       // Update nav visibility (throttled check)
       if (frameCountRef.current % 10 === 0) {
-        const shouldNavBeVisible = targetScrollRef.current < viewportHeightRef.current * 10;
+        const shouldNavBeVisible = targetScrollRef.current < (viewportHeightRef.current * 5);
         if (shouldNavBeVisible !== navVisible) {
           setNavVisible(shouldNavBeVisible);
         }
@@ -183,11 +185,18 @@ export default function Home() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleResize);
 
-    // Aggressive preload on mount
+    // CRITICAL: Preload first 30 images immediately for instant display on load
+    const firstBatchImages: number[] = [];
+    for (let i = 0; i < 30; i++) {
+      firstBatchImages.push(i);
+    }
+    preloadImages(firstBatchImages);
+
+    // Then preload all remaining images in the background
     if (typeof window !== "undefined" && "requestIdleCallback" in window) {
       (window as any).requestIdleCallback(() => {
         const allImages: number[] = [];
-        for (let i = 0; i < imageCount; i++) {
+        for (let i = 30; i < imageCount; i++) {
           allImages.push(i);
         }
         preloadImages(allImages);
@@ -225,7 +234,7 @@ export default function Home() {
         style={{ visibility: navVisible ? "visible" : "hidden" }}
       >
         <div className="relative flex flex-wrap items-center justify-between px-4 md:px-10 pt-6 md:pt-8 w-full max-w-[1440px] mx-auto pointer-events-auto">
-          <div className="hidden md:flex gap-8 text-base md:text-xs font-light font-[AdalineHeading]">
+          <div className="hidden md:flex gap-6.5 text-base md:text-xs font-light font-[AdalineHeading]">
             <a href="#" className="hover:underline text-black/60">PRODUCTS</a>
             <a href="#" className="hover:underline text-black/60">PRICING</a>
             <a href="#" className="hover:underline text-black/60">BLOG</a>
